@@ -1,7 +1,13 @@
+#include <iostream>
+
 #include <llvm/DerivedTypes.h>
 #include <llvm/LLVMContext.h>
 #include <llvm/Module.h>
 #include <llvm/Support/IRBuilder.h>
+#include <llvm/ExecutionEngine/ExecutionEngine.h>
+#include <llvm/ExecutionEngine/GenericValue.h>
+#include <llvm/ExecutionEngine/JIT.h>
+#include <llvm/Target/TargetSelect.h>
 
 static llvm::Function*
 printf_prototype(llvm::LLVMContext& ctx, llvm::Module *mod)
@@ -43,46 +49,75 @@ main_prototype(llvm::LLVMContext& ctx, llvm::Module *mod)
 int
 main(int argc, char **argv)
 {
+    //
+    // do this, or ExecutionEngine::create() returns null.
+    // dependent on the 'jit' config setting in llvm-config...
+    //
+    llvm::InitializeNativeTarget();
+
     llvm::LLVMContext& ctx = llvm::getGlobalContext();
-    llvm::Module module("example", ctx);
+    llvm::Module *module = new llvm::Module("example", ctx);
     llvm::IRBuilder<> builder(ctx);
 
-    llvm::Function *printf_func = printf_prototype(ctx, &module);
+    //
+    // extern void printf(const char *fmt, ...);
+    //
+    llvm::Function *printf_func = printf_prototype(ctx, module);
 
-    llvm::Function *main_func = main_prototype(ctx, &module);
+    //
+    // int main(void)
+    // {
+    llvm::Function *main_func = main_prototype(ctx, module);
     llvm::BasicBlock *block =
         llvm::BasicBlock::Create(ctx, "", main_func, 0);
     builder.SetInsertPoint(block);
 
+    //
+    // int32_t temp = 15 + 10;
+    //
     llvm::Constant *left = llvm::ConstantInt::get(ctx, llvm::APInt(32, 15));
     llvm::Constant *right = llvm::ConstantInt::get(ctx, llvm::APInt(32, 10));
     llvm::Value *add = builder.CreateAdd(left, right);
 
+    //
+    // printf("%d\n", temp);
+    //
     llvm::Constant *format_const =
         llvm::ConstantArray::get(ctx, "%d\n");
     llvm::GlobalVariable *var =
         new llvm::GlobalVariable(
-            module, llvm::ArrayType::get(llvm::IntegerType::get(ctx, 8), 4),
+            *module, llvm::ArrayType::get(llvm::IntegerType::get(ctx, 8), 4),
             true, llvm::GlobalValue::PrivateLinkage, format_const, ".str");
-    llvm::Constant *zero = llvm::Constant::getNullValue(llvm::IntegerType::getInt32Ty(ctx));
+    llvm::Constant *zero =
+        llvm::Constant::getNullValue(llvm::IntegerType::getInt32Ty(ctx));
 
-    //
-    // NOTE: using constant array works here.
-    // &std::vector<Value*>[...] does not. Don't know why.
-    //
-    llvm::Constant *indices[] = {
-        zero,
-        zero
-    };
+    std::vector<llvm::Constant*> indices;
+    indices.push_back(zero);
+    indices.push_back(zero);
     llvm::Constant *var_ref =
-        llvm::ConstantExpr::getGetElementPtr(var, indices, 2);
+        llvm::ConstantExpr::getGetElementPtr(var, &indices[0], indices.size());
 
     llvm::CallInst *call = builder.CreateCall2(printf_func, var_ref, add);
     call->setTailCall(false);
 
-    llvm::ReturnInst::Create(ctx, zero, block);
+    //
+    // return 0;
+    // }
+    //
+    builder.CreateRet(zero);
 
-    module.dump();
+    //
+    // Dump out the AST
+    //
+    module->dump();
+
+    std::cerr << "------------\n";
+
+    //
+    // Execute the program
+    //
+    llvm::ExecutionEngine *engine = llvm::EngineBuilder(module).create();
+    engine->runFunction(main_func, std::vector<llvm::GenericValue>());
 
     return 0;
 }

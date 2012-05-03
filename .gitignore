@@ -1,0 +1,7 @@
+.deps
+/autom4te.cache
+*.o
+/llvm-demo
+*.log
+*.status
+/Makefile
