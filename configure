@@ -2309,7 +2309,7 @@ fi
 
 LLVM_CXXFLAGS=$($LLVMCONFIG --cxxflags)
 
-LLVM_LIBS=$($LLVMCONFIG --ldflags --libs backend | tr '\n' ' ')
+LLVM_LIBS=$($LLVMCONFIG --ldflags --libs engine jit | tr '\n' ' ')
 
 
 ac_ext=cpp
