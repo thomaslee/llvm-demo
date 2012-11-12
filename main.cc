@@ -107,7 +107,7 @@ main(int argc, char **argv)
     builder.CreateRet(zero);
 
     //
-    // Dump out the AST
+    // Dump out the IR
     //
     module->dump();
 
