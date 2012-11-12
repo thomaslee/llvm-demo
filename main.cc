@@ -12,7 +12,7 @@
 static llvm::Function*
 printf_prototype(llvm::LLVMContext& ctx, llvm::Module *mod)
 {
-    std::vector<const llvm::Type*> printf_arg_types;
+    std::vector<llvm::Type*> printf_arg_types;
     printf_arg_types.push_back(llvm::Type::getInt8PtrTy(ctx));
 
     llvm::FunctionType* printf_type =
@@ -31,7 +31,7 @@ printf_prototype(llvm::LLVMContext& ctx, llvm::Module *mod)
 static llvm::Function*
 main_prototype(llvm::LLVMContext& ctx, llvm::Module *mod)
 {
-    std::vector<const llvm::Type*> main_arg_types;
+    std::vector<llvm::Type*> main_arg_types;
 
     llvm::FunctionType* main_type =
         llvm::FunctionType::get(
@@ -95,7 +95,7 @@ main(int argc, char **argv)
     indices.push_back(zero);
     indices.push_back(zero);
     llvm::Constant *var_ref =
-        llvm::ConstantExpr::getGetElementPtr(var, &indices[0], indices.size());
+        llvm::ConstantExpr::getGetElementPtr(var, indices);
 
     llvm::CallInst *call = builder.CreateCall2(printf_func, var_ref, add);
     call->setTailCall(false);
