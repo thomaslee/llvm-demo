@@ -83,7 +83,7 @@ main(int argc, char **argv)
     // printf("%d\n", temp);
     //
     llvm::Constant *format_const =
-        llvm::ConstantArray::get(ctx, "%d\n");
+        llvm::ConstantDataArray::getString(ctx, "%d\n");
     llvm::GlobalVariable *var =
         new llvm::GlobalVariable(
             *module, llvm::ArrayType::get(llvm::IntegerType::get(ctx, 8), 4),
