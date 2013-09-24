@@ -1,7 +1,13 @@
 .deps
-/autom4te.cache
+autom4te.cache
 *.o
 /llvm-demo
 *.log
 *.status
-/Makefile
+Makefile
+*.m4
+Makefile.in
+configure
+depcomp
+install-sh
+missing
