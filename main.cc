@@ -1,12 +1,12 @@
 #include <iostream>
 
-#include <llvm/DerivedTypes.h>
-#include <llvm/LLVMContext.h>
-#include <llvm/Module.h>
-#include <llvm/IRBuilder.h>
+#include <llvm/IR/DerivedTypes.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IR/IRBuilder.h>
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/ExecutionEngine/GenericValue.h>
-#include <llvm/ExecutionEngine/JIT.h>
+#include <llvm/ExecutionEngine/MCJIT.h>
 #include <llvm/Support/TargetSelect.h>
 
 static llvm::Function*
@@ -54,9 +54,12 @@ main(int argc, char **argv)
     // dependent on the 'jit' config setting in llvm-config...
     //
     llvm::InitializeNativeTarget();
+    llvm::InitializeNativeTargetAsmPrinter();
+    llvm::InitializeNativeTargetAsmParser();
 
     llvm::LLVMContext& ctx = llvm::getGlobalContext();
-    llvm::Module *module = new llvm::Module("example", ctx);
+    std::unique_ptr<llvm::Module> owner = llvm::make_unique<llvm::Module>("example", ctx);
+    llvm::Module *module = owner.get();
     llvm::IRBuilder<> builder(ctx);
 
     //
@@ -116,7 +119,11 @@ main(int argc, char **argv)
     //
     // Execute the program
     //
-    llvm::ExecutionEngine *engine = llvm::EngineBuilder(module).create();
+    llvm::ExecutionEngine *engine =
+        llvm::EngineBuilder(std::move(owner))
+            .create();
+    engine->finalizeObject(); // memory for generated code marked executable:
+                              // http://lists.cs.uiuc.edu/pipermail/llvmdev/2013-June/062677.html
     engine->runFunction(main_func, std::vector<llvm::GenericValue>());
 
     return 0;

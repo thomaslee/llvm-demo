@@ -1,7 +1,7 @@
 AC_INIT([llvm-demo],[0.0.1],[github@tomlee.co])
 AM_INIT_AUTOMAKE([1.9 foreign])
 
-LLVMVERSION_MINIMUM=3.2
+LLVMVERSION_MINIMUM=3.6
 
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_FILES([Makefile])
